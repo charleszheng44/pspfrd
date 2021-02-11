@@ -25,7 +25,9 @@ impl<'a> Parser<'a> {
             current_token: ct,
         })
     }
-
+    
+    // parse parses the expression holded by the tokenizer and 
+    // generate an Abstract Syntax Tree(AST)
     pub fn parse(&mut self) -> Result<Node, ParseError> {
         self.generate_ast(OperPrec::DefaultZero)
     }
@@ -92,7 +94,14 @@ impl<'a> Parser<'a> {
 
     fn generate_ast(
         &mut self, oper_prec: OperPrec) -> Result<Node, ParseError> {
-        unreachable!()
+        // an valid AST must start with an number 
+        let mut left_expr = self.parse_num()?;
+        // stop generating an AST when the 
+        while oper_prec < self.current_token.get_oper_prec() {
+            let right_expr = self.convert_token_to_node(left_expr)?;
+            left_expr = right_expr;
+        }
+        return Ok(left_expr);
     }
 
     // check_paren checks if the current token is the right parentheses
@@ -119,7 +128,30 @@ impl<'a> Parser<'a> {
     // parse_num parses the numeric tokens and the clause enclosed in 
     // the parentheses
     fn parse_num(&mut self) -> Result<Node, ParseError> {
-        unreachable!()
+        match self.current_token {
+            Token::Num(f) => {
+                self.get_next_token()?;
+                return Ok(Node::Number(f));
+            },
+
+            Token::Subtract => {
+                self.get_next_token()?;
+                let ast = self.generate_ast(OperPrec::Negative)?;
+                return Ok(Node::Negative(Box::new(ast)));
+            },
+
+            Token::LeftParen => {
+                self.get_next_token()?;
+                let ast = self.generate_ast(OperPrec::DefaultZero);
+                self.check_paren()?;
+                return ast;
+            },
+
+            _ => return Err(
+                ParseError::UnableoParse(
+                    format!("unable to parse token {}", self.current_token))),
+                   
+        }
     }
 }
 
