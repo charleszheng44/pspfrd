@@ -4,6 +4,7 @@ use super::tokenizer::Tokenizer;
 use super::token::{Token, OperPrec};
 use super::ast::Node;
 use std::fmt;
+use std::error::Error;
 
 pub struct Parser<'a> {
     tokenizer: Tokenizer<'a>,
@@ -18,7 +19,7 @@ impl<'a> Parser<'a> {
             Some(tk) => tk,
             // if encountering None, the `fn new` will be returned directly
             None => return Err(ParseError::InvalidOperator(
-                String::from("TODO"))),
+                    "invalid operator".into())),
         };
         Ok(Parser{
             tokenizer: tkzr,
@@ -111,7 +112,7 @@ impl<'a> Parser<'a> {
         }
         return Err(
             ParseError::InvalidOperator(
-                String::from("invalid character")))
+                "invalid character".into()))
     }
     
     // get_next_token moves the Parser's current token one step forward
@@ -120,7 +121,7 @@ impl<'a> Parser<'a> {
             Some(token) => token,
             None => return Err(
                 ParseError::InvalidOperator(
-                    String::from("invalid character"))),
+                    "invalid character".into())),
         };
         Ok(())
     }
@@ -148,7 +149,7 @@ impl<'a> Parser<'a> {
             },
 
             _ => return Err(
-                ParseError::UnableoParse(
+                ParseError::UnableToParse(
                     format!("unable to parse token {}", self.current_token))),
                    
         }
@@ -156,16 +157,18 @@ impl<'a> Parser<'a> {
 }
 
 pub enum ParseError {
-    UnableoParse(String),
+    UnableToParse(String),
     InvalidOperator(String),
 }
+
+impl Error for ParseError{}
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnableoParse(e) => write!(f, "fail to parse: {} ", e),
+            Self::UnableToParse(e) => write!(f, "ParseError: {} ", e),
 
-            Self::InvalidOperator(e) => write!(f, "fail to parse: {}", e),
+            Self::InvalidOperator(e) => write!(f, "ParseError: {}", e),
         }
     }
 }
@@ -173,12 +176,12 @@ impl fmt::Display for ParseError {
 impl fmt::Debug for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnableoParse(e) => 
-                write!(f, "{}:{}:{} fail to parse: {} ", 
+            Self::UnableToParse(e) => 
+                write!(f, "{}:{}:{} ParseError: {} ", 
                     file!(), line!(), column!(), e),
 
             Self::InvalidOperator(e) => 
-                write!(f, "{}:{}:{} fail to parse: {}", 
+                write!(f, "{}:{}:{} ParseError: {}", 
                     file!(), line!(), column!(), e),
         }
     }
