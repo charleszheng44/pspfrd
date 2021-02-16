@@ -1,23 +1,24 @@
-#![allow(dead_code)]
-
 use std::fmt;
 
-enum ContentType {
+#[derive(Debug, PartialEq)]
+pub enum ContentType {
     Literal(String),
     TemplateVariable(ExpressionData),
     Tag(TagType),
     Unrecognized(String),
 }
 
-enum TagType {
+#[derive(Debug, PartialEq)]
+pub enum TagType {
     ForTag,
     IfTag,
 }
 
-struct ExpressionData {
-    head: Option<String>,
-    variable: String,
-    tail: Option<String>,
+#[derive(Debug, PartialEq)]
+pub struct ExpressionData {
+    pub head: Option<String>,
+    pub variable: String,
+    pub tail: Option<String>,
 }
 
 impl fmt::Display for ExpressionData {
@@ -38,27 +39,27 @@ impl fmt::Display for ExpressionData {
     }
 }
 
-fn get_content_type(input: &str) -> ContentType {
-    if input.starts_with("{%") {
-        // 1. Tag 
-        if !input.ends_with("%}") {
-            return ContentType::Unrecognized("TODO".into());
-        }
+pub fn get_content_type(input: &str) -> ContentType {
+    if let Some(start) = input.find("{%") {
+        if let Some(end) = input.find("%}") {
+            if start > end || start + 1 == end {
+                return ContentType::Unrecognized(
+                    "the left parenthesis must appear before the right parenthesis".into());
+            }
+            let tag_clause = input[start+2..end].to_string();
+            if tag_clause.contains("if") {
+                return ContentType::Tag(TagType::IfTag);
+            }
 
-        // 1.1 ForTag 
-        if input.starts_with("{% for ") || input == "{% endfor %}"{
-            return ContentType::Tag(TagType::ForTag);
-        }
-
-        // 1.2 IfTag
-        if input.starts_with("{% if ") || input == "{% endif %}" {
-            return ContentType::Tag(TagType::IfTag);
-        }
-
-        // 1.3 Unrecognized
+            if tag_clause.contains("for") {
+                return ContentType::Tag(TagType::ForTag);
+            }
+            return ContentType::Unrecognized(
+                "tag content is not for or if".into());
+        } 
         return ContentType::Unrecognized(
-            format!("invalid tag statement {}", input));
-    } 
+            "the right parenthesis does not exist".into());
+    }
 
     if input.contains("{{") {
         // 2. TemplateVariable
@@ -71,7 +72,9 @@ fn get_content_type(input: &str) -> ContentType {
     return ContentType::Literal(input.into());
 }
 
-struct GetExpressionError(String, String);
+
+#[derive(Debug, PartialEq)]
+pub struct GetExpressionError(String, String);
 
 impl fmt::Display for GetExpressionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -79,9 +82,24 @@ impl fmt::Display for GetExpressionError {
     }
 } 
 
-fn get_expression_data(inp: &str) -> Result<ExpressionData, GetExpressionError> {
-    let start = inp.find("{{").unwrap();
-    let end = inp.find("}}").unwrap();
+macro_rules! unwrap_or_return_err {
+    ($opt: expr, $err: expr) => {
+        match $opt {
+            Some(val) => val,
+            None => return Err($err),
+        }
+    }
+}
+
+pub fn get_expression_data(inp: &str) -> Result<ExpressionData, GetExpressionError> {
+    let start = unwrap_or_return_err!(inp.find("{{"), 
+        GetExpressionError(
+            inp.into(), 
+            "can't parse it into an ExpressionData as there exist no {{".into()));
+    let end = unwrap_or_return_err!(inp.find("}}"), 
+        GetExpressionError(
+            inp.into(), 
+            "can't parse it into an ExpressionData as there exist no {{".into()));
     
     if start >= end {
         return Err(GetExpressionError(inp.into(), 
@@ -101,7 +119,7 @@ fn get_expression_data(inp: &str) -> Result<ExpressionData, GetExpressionError> 
     }
 
     if end != inp.len() {
-        tail = Some(inp[end..inp.len()].into());
+        tail = Some(inp[end+2..inp.len()].into());
     }
     
     Ok(ExpressionData{
