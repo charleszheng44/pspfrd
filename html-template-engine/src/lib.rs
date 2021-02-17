@@ -1,4 +1,5 @@
 use std::fmt;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
 pub enum ContentType {
@@ -127,4 +128,25 @@ pub fn get_expression_data(inp: &str) -> Result<ExpressionData, GetExpressionErr
         variable: inp[start+2..end].into(),
         tail,
     })
+}
+
+pub fn substitute_template_variable(
+    expr_data: ExpressionData, 
+    context: &HashMap<String, String>) -> Result<String, String> {
+    
+    let val = match context.get(&expr_data.variable) {
+        Some(val) => val,
+        None => return Err(
+            format!("the variable({}) is not found in the context", 
+            expr_data.variable))
+    };
+    let mut ret = String::new();
+    if let Some(head_str) = expr_data.head {
+        ret.push_str(&head_str);
+    }
+    ret.push_str(&val.to_string());
+    if let Some(tail_str) = expr_data.tail {
+        ret.push_str(&tail_str);
+    }
+    Ok(ret)
 }

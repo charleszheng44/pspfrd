@@ -1,5 +1,4 @@
-use html_template_engine::{ExpressionData, ContentType, TagType};
-use html_template_engine as hte;
+use html_template_engine::{self as hte, ExpressionData, ContentType, TagType};
 
 #[test]
 fn check_template_var_test() {
