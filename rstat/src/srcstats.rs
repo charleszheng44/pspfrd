@@ -4,7 +4,7 @@ use std::fmt;
 use std::io::{self, BufRead};
 use super::errors::StatsError;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct SrcStats {
     pub abs_path: String,
     pub number_of_files: u32,
@@ -25,7 +25,7 @@ impl fmt::Display for SrcStats {
     }
 }
 
-fn get_summary_src_stats(inp_dir: &Path) -> Result<SrcStats, StatsError>{
+pub fn get_summary_src_stats(inp_dir: &Path) -> Result<SrcStats, StatsError>{
     let mut dirs = vec!{inp_dir.to_path_buf()};
     let mut file_stats = vec!{};
     while let Some(dir) = dirs.pop() {

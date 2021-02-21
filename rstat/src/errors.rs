@@ -2,6 +2,7 @@ use std::fmt;
 use std::convert::From;
 use std::io;
 
+#[derive(Debug)]
 pub struct StatsError (String);
 
 impl fmt::Display for StatsError {
