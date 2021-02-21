@@ -3,6 +3,8 @@ use std::fs;
 use std::fmt;
 use std::io::{self, BufRead};
 use super::errors::StatsError;
+use std::ffi::OsStr;
+
 
 #[derive(Default, Debug)]
 pub struct SrcStats {
@@ -12,6 +14,8 @@ pub struct SrcStats {
     pub comments: u32,
     pub blanks: u32,
 }
+
+const RUST_EXT: &str = "rs";
 
 impl fmt::Display for SrcStats {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -40,8 +44,12 @@ pub fn get_summary_src_stats(inp_dir: &Path) -> Result<SrcStats, StatsError>{
             if is_symlink(&entry) {
                 continue;
             }
-            // get the stats of the file
-            file_stats.push(get_src_stats_for_file(entry.path().as_path())?);
+            // get the stats of the rust source file
+            if is_rust_file(entry.path().as_path()) {
+                file_stats.push(
+                    get_src_stats_for_file(entry.path().as_path())?);
+                continue;
+            }
         }
     }
     let mut dir_stats = SrcStats {
@@ -82,4 +90,18 @@ fn get_src_stats_for_file(file_path: &Path) -> Result<SrcStats, StatsError> {
 
 fn is_symlink(dir_entry: &fs::DirEntry) -> bool {
     dir_entry.metadata().expect("TODO").file_type().is_symlink()
+}
+
+fn is_rust_file(file_path: &Path) -> bool {
+    if let Some(ext) = get_file_extension(file_path) {
+        if ext == RUST_EXT {
+            return true;
+        } 
+        return false;
+    }
+    false
+}
+
+fn get_file_extension(file_path: &Path) -> Option<&str> {
+    file_path.extension().and_then(OsStr::to_str)
 }
