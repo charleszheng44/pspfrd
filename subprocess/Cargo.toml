@@ -1,0 +1,26 @@
+[package]
+name = "subprocess"
+version = "0.1.0"
+authors = ["chao zheng <charleszheng44@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+signal-hook="0.1.16"
+
+[[bin]]
+name="signal-handler"
+path="src/signal_handler.rs"
+
+[[bin]]
+name="cmd-exec-1"
+path="src/cmd_exec_1.rs"
+
+[[bin]]
+name="cmd-exec-2"
+path="src/cmd_exec_2.rs"
+
+[[bin]]
+name="cmd-exec-3"
+path="src/cmd_exec_3.rs"
