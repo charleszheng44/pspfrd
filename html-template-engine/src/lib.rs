@@ -1,25 +1,23 @@
-use std::fmt;
-use std::collections::HashMap;
+#![allow(dead_code)]
 
-#[derive(Debug, PartialEq)]
-pub enum ContentType {
+use std::fmt;
+
+enum ContentType {
     Literal(String),
     TemplateVariable(ExpressionData),
     Tag(TagType),
     Unrecognized(String),
 }
 
-#[derive(Debug, PartialEq)]
-pub enum TagType {
+enum TagType {
     ForTag,
     IfTag,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct ExpressionData {
-    pub head: Option<String>,
-    pub variable: String,
-    pub tail: Option<String>,
+struct ExpressionData {
+    head: Option<String>,
+    variable: String,
+    tail: Option<String>,
 }
 
 impl fmt::Display for ExpressionData {
@@ -40,27 +38,27 @@ impl fmt::Display for ExpressionData {
     }
 }
 
-pub fn get_content_type(input: &str) -> ContentType {
-    if let Some(start) = input.find("{%") {
-        if let Some(end) = input.find("%}") {
-            if start > end || start + 1 == end {
-                return ContentType::Unrecognized(
-                    "the left parenthesis must appear before the right parenthesis".into());
-            }
-            let tag_clause = input[start+2..end].to_string();
-            if tag_clause.contains("if") {
-                return ContentType::Tag(TagType::IfTag);
-            }
+fn get_content_type(input: &str) -> ContentType {
+    if input.starts_with("{%") {
+        // 1. Tag 
+        if !input.ends_with("%}") {
+            return ContentType::Unrecognized("TODO".into());
+        }
 
-            if tag_clause.contains("for") {
-                return ContentType::Tag(TagType::ForTag);
-            }
-            return ContentType::Unrecognized(
-                "tag content is not for or if".into());
-        } 
+        // 1.1 ForTag 
+        if input.starts_with("{% for ") || input == "{% endfor %}"{
+            return ContentType::Tag(TagType::ForTag);
+        }
+
+        // 1.2 IfTag
+        if input.starts_with("{% if ") || input == "{% endif %}" {
+            return ContentType::Tag(TagType::IfTag);
+        }
+
+        // 1.3 Unrecognized
         return ContentType::Unrecognized(
-            "the right parenthesis does not exist".into());
-    }
+            format!("invalid tag statement {}", input));
+    } 
 
     if input.contains("{{") {
         // 2. TemplateVariable
@@ -73,9 +71,7 @@ pub fn get_content_type(input: &str) -> ContentType {
     return ContentType::Literal(input.into());
 }
 
-
-#[derive(Debug, PartialEq)]
-pub struct GetExpressionError(String, String);
+struct GetExpressionError(String, String);
 
 impl fmt::Display for GetExpressionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -92,7 +88,7 @@ macro_rules! unwrap_or_return_err {
     }
 }
 
-pub fn get_expression_data(inp: &str) -> Result<ExpressionData, GetExpressionError> {
+fn get_expression_data(inp: &str) -> Result<ExpressionData, GetExpressionError> {
     let start = unwrap_or_return_err!(inp.find("{{"), 
         GetExpressionError(
             inp.into(), 
@@ -120,7 +116,7 @@ pub fn get_expression_data(inp: &str) -> Result<ExpressionData, GetExpressionErr
     }
 
     if end != inp.len() {
-        tail = Some(inp[end+2..inp.len()].into());
+        tail = Some(inp[end..inp.len()].into());
     }
     
     Ok(ExpressionData{
@@ -128,25 +124,4 @@ pub fn get_expression_data(inp: &str) -> Result<ExpressionData, GetExpressionErr
         variable: inp[start+2..end].into(),
         tail,
     })
-}
-
-pub fn substitute_template_variable(
-    expr_data: ExpressionData, 
-    context: &HashMap<String, String>) -> Result<String, String> {
-    
-    let val = match context.get(&expr_data.variable) {
-        Some(val) => val,
-        None => return Err(
-            format!("the variable({}) is not found in the context", 
-            expr_data.variable))
-    };
-    let mut ret = String::new();
-    if let Some(head_str) = expr_data.head {
-        ret.push_str(&head_str);
-    }
-    ret.push_str(&val.to_string());
-    if let Some(tail_str) = expr_data.tail {
-        ret.push_str(&tail_str);
-    }
-    Ok(ret)
 }
