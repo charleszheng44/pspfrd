@@ -1,0 +1,17 @@
+[package]
+name = "udp-tcp-example"
+version = "0.1.0"
+authors = ["chao zheng <charleszheng44@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[[bin]]
+name="udp-server"
+path="src/udp-server.rs"
+
+[[bin]]
+name="udp-client"
+path="src/udp-client.rs"
