@@ -1,22 +1,26 @@
-use std::net::TcpListener;
-use std::io::Read;
-use tcpproxy::consts;
-use std::str;
-use std::fmt;
+#[macro_use]
+mod log;
+mod consts;
 
+use std::net::{TcpListener, TcpStream};
+use std::io::{BufRead, BufReader, Write};
+use std::{str, fmt, thread};
+
+#[allow(dead_code)]
 struct RequestLine {
     method: Option<String>,
     path: Option<String>,
     protocol: Option<String>,
 }
 
+#[derive(Debug)]
 struct ParseRequestError{
     request: String
 }
 
 impl fmt::Display for ParseRequestError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "fail to parse the request {}", self.request)
+        write!(f, "fail to parse the request: {}", self.request)
     }
 }
 
@@ -90,11 +94,21 @@ fn parse_request(rl: RequestLine) -> String {
     }
 }
 
+fn handle_conn(mut stream: TcpStream) {
+    // 1. read the first line from the stream 
+    let mut fst_line = String::new();
+    let mut buf_reader = BufReader::new(stream.try_clone().expect("TODO"));
+    buf_reader.read_line(&mut fst_line).expect("TODO");
+    let request_line = gen_request_line(fst_line.as_ref()).expect("TODO");
+    let response = parse_request(request_line);
+    stream.write(response.as_bytes()).expect("TODO");
+}
+
 fn main() {
     let listener = TcpListener::bind(consts::ORIG_SERVER_ADDR).unwrap();
-    let (mut stream, cli_addr) = listener.accept().unwrap();
-    let mut buf  = [0; consts::BUFFER_SIZE];
-    stream.read(&mut buf).unwrap();
-    println!("receive message from client {}:\n {}", 
-        cli_addr, str::from_utf8(&buf).unwrap())
+    log!("TCPServer is listening at {}", consts::ORIG_SERVER_ADDR);
+    for stream in listener.incoming()  {
+        let stream = stream.expect(""); 
+        thread::spawn(move || handle_conn(stream));
+    }
 }
